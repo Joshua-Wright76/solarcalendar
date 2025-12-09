@@ -1,3 +1,5 @@
 node_modules
 solarcalendarkeypair.pem
 .env
+image.tar.gz
+dist
