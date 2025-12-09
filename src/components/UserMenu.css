@@ -1,0 +1,51 @@
+.user-menu-loading {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.signin-btn {
+  padding: 0.5rem 1.25rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.signin-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-warm);
+  color: var(--text-primary);
+}
+
+.user-menu-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.user-menu-btn:hover {
+  transform: scale(1.05);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-warm) 0%, #d97706 100%);
+  color: #000;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

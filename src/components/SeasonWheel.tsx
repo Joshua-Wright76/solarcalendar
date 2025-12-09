@@ -294,7 +294,7 @@ export function SeasonWheel({ currentSolarDate }: SeasonWheelProps) {
           />
         </div>
         <div className="season-progress-label">
-          {Math.round(progressInSeason * 100)}% through {currentSeason.name.toLowerCase()}
+          {Math.round(progressInSeason * 100)}% through {currentSeason.name.toLowerCase()} season
         </div>
       </div>
 

@@ -159,7 +159,7 @@ export function SolsticeCountdown({ currentSolarDate }: SolsticeCountdownProps) 
             )}
           </div>
           <div className="event-now-text">
-            <span className="now-label">{event.shortName}</span>
+            <span className="now-label">{event.name}</span>
             <span className="now-highlight" style={{ color: event.color }}>Now!</span>
           </div>
           <div className="event-name">{event.name}</div>
@@ -188,7 +188,7 @@ export function SolsticeCountdown({ currentSolarDate }: SolsticeCountdownProps) 
           </svg>
         )}
         <span className="event-label">
-          {isPast ? 'Since' : 'Until'} <span className="event-name-inline" style={{ color: event.color }}>{event.shortName}</span>
+          {isPast ? 'Since' : 'Until'} <span className="event-name-inline" style={{ color: event.color }}>{event.name}</span>
         </span>
         <span className={`direction-badge ${isPast ? 'past' : 'future'}`}>
           {isPast ? 'ago' : 'ahead'}

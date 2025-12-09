@@ -8,6 +8,7 @@ import { DateConverter } from './components/DateConverter'
 import { YearOverview } from './components/YearOverview'
 import { SolsticeCountdown } from './components/SolsticeCountdown'
 import { SeasonWheel } from './components/SeasonWheel'
+import { UserMenu } from './components/UserMenu'
 
 type ViewMode = 'calendar' | 'solstice' | 'year'
 
@@ -76,6 +77,7 @@ function App() {
             </svg>
             <h1>The Solar Calendar</h1>
           </div>
+          <UserMenu />
         </div>
       </header>
 

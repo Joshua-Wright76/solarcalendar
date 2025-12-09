@@ -14,6 +14,7 @@
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "amazon-cognito-identity-js": "^6.3.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
