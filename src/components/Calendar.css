@@ -90,15 +90,50 @@
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
 }
 
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .current-month-indicator {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
   color: var(--accent-warm);
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.toggle-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.toggle-button {
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-button:hover {
+  border-color: var(--accent-warm);
+  color: var(--text-secondary);
+}
+
+.toggle-button.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--accent-warm);
+  color: var(--accent-warm);
 }
 
 .pulse-dot {
@@ -163,6 +198,15 @@
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-primary);
+}
+
+.moon-phase {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 0.65rem;
+  line-height: 1;
+  opacity: 0.8;
 }
 
 .day-cell.today {

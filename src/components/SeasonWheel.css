@@ -1,0 +1,197 @@
+.season-wheel {
+  background: linear-gradient(135deg, rgba(15, 15, 25, 0.95) 0%, rgba(10, 10, 20, 0.98) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Starfield effect */
+.season-wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 40px 70px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 50px 160px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 160px 120px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1.5px 1.5px at 200px 50px, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 220px 140px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 250px 90px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 280px 170px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1.5px 1.5px at 310px 60px, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 340px 130px, rgba(255, 255, 255, 0.25), transparent);
+  pointer-events: none;
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.wheel-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.wheel-svg {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+}
+
+.season-arc {
+  transition: opacity 0.3s ease;
+}
+
+.season-arc.current {
+  animation: arcPulse 3s ease-in-out infinite;
+}
+
+@keyframes arcPulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.7; }
+}
+
+.position-marker {
+  animation: markerGlow 2s ease-in-out infinite;
+}
+
+.marker-glow {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { r: 12; opacity: 0.3; }
+  50% { r: 16; opacity: 0.5; }
+}
+
+@keyframes markerGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px currentColor); }
+  50% { filter: drop-shadow(0 0 8px currentColor); }
+}
+
+.center-season-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.center-progress {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.season-info {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.current-season-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+}
+
+.current-season-name {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.season-peak {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 1rem;
+}
+
+.season-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.season-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.season-progress-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.season-legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.legend-item.current {
+  opacity: 1;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-name {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 480px) {
+  .season-wheel {
+    padding: 1rem;
+  }
+
+  .wheel-svg {
+    max-width: 220px;
+  }
+
+  .current-season-name {
+    font-size: 1.5rem;
+  }
+
+  .season-legend {
+    gap: 0.75rem;
+  }
+
+  .legend-name {
+    font-size: 0.75rem;
+  }
+}
+

@@ -118,3 +118,39 @@ When programming this calendar, treat the Solstice Days as a "13th Month" with n
 2.  **Modulo Math:**
     * To find the day of the week for any date *within* the months: `(Day_of_Month - 1) % 6`.
     * 0=Mon, 1=Wed, 2=Thu, 3=Fri, 4=Sat, 5=Sun.
+
+---
+
+## 7. The Centered-Season System
+
+Unlike the Gregorian calendar where seasons *begin* on their respective solstice or equinox, the Solar Calendar uses a **centered-season system** where each astronomical event marks the *peak* of its season.
+
+### Philosophy
+The centered-season approach reflects the true nature of seasonal change: the Winter Solstice is the coldest, darkest point—the heart of winter—not its beginning. Similarly, the Summer Solstice represents peak summer, not its start.
+
+### Season Boundaries
+Each season changes at the **midpoint** between two consecutive astronomical events:
+
+| Season | Peak (Center) | Begins | Ends |
+| :--- | :--- | :--- | :--- |
+| **Summer** | Summer Solstice (Solstice Day 3) | ~May 6 | ~August 6 |
+| **Fall** | Fall Equinox (~September 22) | ~August 6 | ~November 6 |
+| **Winter** | Winter Solstice (~December 21) | ~November 6 | ~February 4 |
+| **Spring** | Spring Equinox (~March 20) | ~February 4 | ~May 6 |
+
+### Solar Calendar Month Alignment (Approximate)
+Since the Solar year begins on July 1st (≈ June 24 Gregorian):
+
+| Season | Solar Months |
+| :--- | :--- |
+| **Summer** | Late May – Early August (parts of months 11, 12, Solstice, 1, 2) |
+| **Fall** | Early August – Early November (parts of months 2, 3, 4, 5) |
+| **Winter** | Early November – Early February (parts of months 5, 6, 7, 8) |
+| **Spring** | Early February – Early May (parts of months 8, 9, 10, 11) |
+
+### Implementation
+To determine the current season:
+1. Calculate the day-of-year position (1–365/366)
+2. Convert to a circular position (0–1 representing the full year)
+3. The year is divided into four equal quadrants, each centered on its astronomical event
+4. Season boundaries occur at 1/8, 3/8, 5/8, and 7/8 of the year cycle

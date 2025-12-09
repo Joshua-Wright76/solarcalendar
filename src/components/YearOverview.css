@@ -1,0 +1,209 @@
+.year-overview {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.year-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  border-color: var(--accent-warm);
+  color: var(--accent-warm);
+}
+
+.year-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.leap-badge-small {
+  padding: 0.25rem 0.75rem;
+  background: rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: #a78bfa;
+  font-weight: 500;
+}
+
+.months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mini-month {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-month:hover {
+  border-color: var(--accent-warm);
+  transform: translateY(-2px);
+}
+
+.mini-month.current {
+  border-color: var(--accent-warm);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.mini-month.past {
+  opacity: 0.6;
+}
+
+.mini-month-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.mini-days-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+
+.mini-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  border-radius: 2px;
+}
+
+.mini-day.today {
+  background: var(--accent-warm);
+  color: var(--bg-primary);
+  font-weight: 700;
+}
+
+.solstice-period {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.solstice-period:hover {
+  border-color: var(--accent-warm);
+  transform: translateY(-2px);
+}
+
+.solstice-period.current {
+  border-color: var(--accent-warm);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.solstice-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-warm);
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.solstice-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.solstice-days-mini {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.solstice-day-dot {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.solstice-day-dot.peak {
+  border-color: var(--accent-warm);
+  color: var(--accent-warm);
+}
+
+.solstice-day-dot.today {
+  background: var(--accent-warm);
+  border-color: var(--accent-warm);
+  color: var(--bg-primary);
+  font-weight: 700;
+}
+
+.solstice-label {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .months-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .months-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .year-overview {
+    padding: 1rem;
+  }
+
+  .mini-month {
+    padding: 0.5rem;
+  }
+
+  .mini-day {
+    font-size: 0.5rem;
+  }
+}
+

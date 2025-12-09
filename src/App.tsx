@@ -4,13 +4,19 @@ import { gregorianToSolar, SolarDate } from './utils/solarCalendar'
 import { DateDisplay } from './components/DateDisplay'
 import { Calendar } from './components/Calendar'
 import { SolsticeDays } from './components/SolsticeDays'
+import { DateConverter } from './components/DateConverter'
+import { YearOverview } from './components/YearOverview'
+import { SolsticeCountdown } from './components/SolsticeCountdown'
+import { SeasonWheel } from './components/SeasonWheel'
+
+type ViewMode = 'calendar' | 'solstice' | 'year'
 
 function App() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [solarDate, setSolarDate] = useState<SolarDate>(gregorianToSolar(new Date()))
-  const [viewMonth, setViewMonth] = useState(solarDate.month)
+  const [viewMonth, setViewMonth] = useState(solarDate.month || 1)
   const [viewYear, setViewYear] = useState(solarDate.year)
-  const [showSolstice, setShowSolstice] = useState(solarDate.isSolsticeDay)
+  const [viewMode, setViewMode] = useState<ViewMode>(solarDate.isSolsticeDay ? 'solstice' : 'calendar')
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -24,7 +30,7 @@ function App() {
 
   const handleMonthChange = (month: number) => {
     setViewMonth(month)
-    setShowSolstice(false)
+    setViewMode('calendar')
   }
 
   const handleYearChange = (year: number) => {
@@ -32,18 +38,22 @@ function App() {
   }
 
   const handleShowSolstice = () => {
-    setShowSolstice(true)
+    setViewMode('solstice')
   }
 
   const handleShowCalendar = () => {
-    setShowSolstice(false)
+    setViewMode('calendar')
+  }
+
+  const handleShowYearOverview = () => {
+    setViewMode('year')
   }
 
   const goToToday = () => {
     const today = gregorianToSolar(new Date())
-    setViewMonth(today.month)
+    setViewMonth(today.month || 1)
     setViewYear(today.year)
-    setShowSolstice(today.isSolsticeDay)
+    setViewMode(today.isSolsticeDay ? 'solstice' : 'calendar')
   }
 
   return (
@@ -76,8 +86,18 @@ function App() {
           onGoToToday={goToToday}
         />
         
+        <SolsticeCountdown currentSolarDate={solarDate} />
+        
         <div className="calendar-section">
-          {showSolstice ? (
+          {viewMode === 'year' ? (
+            <YearOverview
+              year={viewYear}
+              currentSolarDate={solarDate}
+              onMonthClick={handleMonthChange}
+              onShowSolstice={handleShowSolstice}
+              onBack={handleShowCalendar}
+            />
+          ) : viewMode === 'solstice' ? (
             <SolsticeDays 
               year={viewYear} 
               currentSolarDate={solarDate}
@@ -91,9 +111,14 @@ function App() {
               onMonthChange={handleMonthChange}
               onYearChange={handleYearChange}
               onShowSolstice={handleShowSolstice}
+              onShowYearOverview={handleShowYearOverview}
             />
           )}
         </div>
+
+        <SeasonWheel currentSolarDate={solarDate} />
+
+        <DateConverter />
       </main>
 
       <footer className="footer">
@@ -104,4 +129,3 @@ function App() {
 }
 
 export default App
-

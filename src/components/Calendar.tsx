@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { 
   SolarDate, 
   SOLAR_MONTHS, 
   SOLAR_DAYS_ABBREV,
   getMonthDays,
-  isSameSolarDay
+  isSameSolarDay,
+  solarToGregorian
 } from '../utils/solarCalendar'
+import { getMoonPhase } from '../utils/moonPhases'
 import './Calendar.css'
 
 interface CalendarProps {
@@ -14,6 +17,7 @@ interface CalendarProps {
   onMonthChange: (month: number) => void
   onYearChange: (year: number) => void
   onShowSolstice: () => void
+  onShowYearOverview: () => void
 }
 
 export function Calendar({
@@ -22,8 +26,10 @@ export function Calendar({
   currentSolarDate,
   onMonthChange,
   onYearChange,
-  onShowSolstice
+  onShowSolstice,
+  onShowYearOverview
 }: CalendarProps) {
+  const [showMoonPhases, setShowMoonPhases] = useState(false)
   const days = getMonthDays(year, month)
   
   const handlePrevMonth = () => {
@@ -99,12 +105,31 @@ export function Calendar({
         </button>
       </div>
       
-      {isCurrentMonth && (
-        <div className="current-month-indicator">
-          <span className="pulse-dot"></span>
-          Current Month
+      <div className="calendar-controls">
+        {isCurrentMonth && (
+          <div className="current-month-indicator">
+            <span className="pulse-dot"></span>
+            Current Month
+          </div>
+        )}
+        
+        <div className="toggle-controls">
+          <button 
+            className={`toggle-button ${showMoonPhases ? 'active' : ''}`}
+            onClick={() => setShowMoonPhases(!showMoonPhases)}
+            title="Toggle moon phases"
+          >
+            🌙 Moon
+          </button>
+          <button 
+            className="toggle-button"
+            onClick={onShowYearOverview}
+            title="View full year"
+          >
+            📅 Year
+          </button>
         </div>
-      )}
+      </div>
       
       <div className="calendar-grid">
         <div className="weekday-header">
@@ -116,12 +141,26 @@ export function Calendar({
         <div className="days-grid">
           {days.map(day => {
             const isToday = isSameSolarDay(day, currentSolarDate)
+            const gregorianDate = solarToGregorian({
+              year: day.year,
+              month: day.month,
+              day: day.day,
+              isSolsticeDay: false
+            })
+            const moonPhase = showMoonPhases ? getMoonPhase(gregorianDate) : null
+            
             return (
               <div 
                 key={day.day}
                 className={`day-cell ${isToday ? 'today' : ''}`}
+                title={moonPhase ? `${moonPhase.name} (${moonPhase.illumination}% illuminated)` : undefined}
               >
                 <span className="day-number">{day.day}</span>
+                {moonPhase && (
+                  <span className="moon-phase" aria-label={moonPhase.name}>
+                    {moonPhase.emoji}
+                  </span>
+                )}
               </div>
             )
           })}
@@ -143,4 +182,3 @@ export function Calendar({
     </div>
   )
 }
-
