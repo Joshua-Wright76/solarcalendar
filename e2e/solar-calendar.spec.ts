@@ -283,34 +283,48 @@ test.describe('Year Overview', () => {
   })
 })
 
-test.describe('Solstice Countdown', () => {
+test.describe('Astronomical Event Countdown', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
   })
 
-  test('should display the solstice countdown component', async ({ page }) => {
+  test('should display the countdown component', async ({ page }) => {
     await expect(page.locator('.solstice-countdown')).toBeVisible()
   })
 
-  test('should show countdown units or solstice now message', async ({ page }) => {
-    // Either shows countdown units or "Solstice Now!" message
+  test('should show countdown units or event now message', async ({ page }) => {
+    // Either shows countdown units or "Now!" message
     const countdown = page.locator('.solstice-countdown')
     await expect(countdown).toBeVisible()
     
     const hasUnits = await page.locator('.countdown-units').isVisible()
-    const hasSolsticeNow = await page.locator('.solstice-now-text').isVisible()
+    const hasEventNow = await page.locator('.event-now-text').isVisible()
     
-    expect(hasUnits || hasSolsticeNow).toBeTruthy()
+    expect(hasUnits || hasEventNow).toBeTruthy()
   })
 
-  test('should display countdown header when not in solstice', async ({ page }) => {
-    // Navigate to a month that's not near solstice
-    await page.locator('.month-select').selectOption('7') // January
-    
-    // If countdown is shown (not during solstice)
+  test('should display countdown header with event name', async ({ page }) => {
     const countdownHeader = page.locator('.countdown-header')
     if (await countdownHeader.isVisible()) {
-      await expect(countdownHeader).toContainText('Until Solstice')
+      // Should show either "Since" or "Until" with an event name
+      const headerText = await countdownHeader.textContent()
+      expect(headerText).toMatch(/(Since|Until).*(Summer|Fall|Winter|Spring)/)
+    }
+  })
+
+  test('should display direction badge (ago or ahead)', async ({ page }) => {
+    const badge = page.locator('.direction-badge')
+    if (await badge.isVisible()) {
+      const badgeText = await badge.textContent()
+      expect(['ago', 'ahead']).toContain(badgeText?.trim())
+    }
+  })
+
+  test('should display event full name', async ({ page }) => {
+    const eventName = page.locator('.event-full-name')
+    if (await eventName.isVisible()) {
+      const nameText = await eventName.textContent()
+      expect(nameText).toMatch(/(Summer Solstice|Fall Equinox|Winter Solstice|Spring Equinox)/)
     }
   })
 })

@@ -17,12 +17,41 @@
 }
 
 .countdown-icon {
+  color: var(--event-color, var(--accent-warm));
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+.event-label {
+  color: var(--text-secondary);
+}
+
+.event-name-inline {
+  font-weight: 600;
+}
+
+.direction-badge {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.direction-badge.future {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.direction-badge.past {
+  background: rgba(156, 163, 175, 0.15);
+  color: #9ca3af;
 }
 
 .countdown-units {
@@ -61,19 +90,27 @@
   margin-top: -1rem;
 }
 
-/* Solstice Now State */
-.solstice-countdown.solstice-now {
+.event-full-name {
+  text-align: center;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Event Now State */
+.solstice-countdown.event-now {
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
-  border-color: var(--accent-warm);
+  border-color: var(--event-color, var(--accent-warm));
   padding: 1.5rem;
 }
 
 .countdown-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--event-color, var(--accent-warm)) 30%, transparent) 0%, transparent 70%);
   animation: glow-pulse 2s ease-in-out infinite;
 }
 
@@ -91,13 +128,13 @@
   gap: 0.75rem;
 }
 
-.sun-burst {
+.event-burst {
   width: 60px;
   height: 60px;
-  color: var(--accent-warm);
+  color: var(--event-color, var(--accent-warm));
 }
 
-.sun-icon-large {
+.event-icon-large {
   width: 100%;
   height: 100%;
   animation: sun-spin 20s linear infinite;
@@ -108,7 +145,7 @@
   to { transform: rotate(360deg); }
 }
 
-.solstice-now-text {
+.event-now-text {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -124,16 +161,45 @@
 .now-highlight {
   font-size: 1.75rem;
   font-weight: 800;
-  background: linear-gradient(90deg, var(--accent-warm) 0%, #ef4444 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   animation: text-glow 2s ease-in-out infinite;
 }
 
 @keyframes text-glow {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.2); }
+}
+
+.event-name {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Legacy support for solstice-now class */
+.solstice-countdown.solstice-now {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border-color: var(--accent-warm);
+  padding: 1.5rem;
+}
+
+.sun-burst {
+  width: 60px;
+  height: 60px;
+  color: var(--accent-warm);
+}
+
+.sun-icon-large {
+  width: 100%;
+  height: 100%;
+  animation: sun-spin 20s linear infinite;
+}
+
+.solstice-now-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .solstice-day-info {
@@ -149,5 +215,12 @@
   .unit-value {
     font-size: 1.25rem;
   }
-}
 
+  .countdown-header {
+    flex-wrap: wrap;
+  }
+
+  .direction-badge {
+    margin-left: 0;
+  }
+}
