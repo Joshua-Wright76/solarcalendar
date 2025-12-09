@@ -1,0 +1,252 @@
+.calendar {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.nav-button {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover {
+  background: var(--accent-warm);
+  border-color: var(--accent-warm);
+  color: var(--bg-primary);
+}
+
+.nav-button:active {
+  transform: scale(0.95);
+}
+
+.calendar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.month-select {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.month-select:hover {
+  background: var(--bg-tertiary);
+}
+
+.month-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.year-label {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.year-input {
+  font-family: var(--font-mono);
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--accent-warm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  width: 80px;
+  text-align: center;
+}
+
+.year-input:focus {
+  outline: none;
+  border-color: var(--accent-warm);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.current-month-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--accent-warm);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-warm);
+  border-radius: 50%;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.calendar-grid {
+  margin-bottom: 1.5rem;
+}
+
+.weekday-header {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.weekday-cell {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  cursor: default;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.day-cell:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.day-number {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.day-cell.today {
+  background: var(--accent-warm);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.day-cell.today .day-number {
+  color: var(--bg-primary);
+  font-weight: 700;
+}
+
+.day-cell.today::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--accent-glow);
+  border-radius: 10px;
+  animation: todayGlow 2s ease-in-out infinite;
+}
+
+@keyframes todayGlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.solstice-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: 1px dashed var(--accent-deep);
+  border-radius: 10px;
+  color: var(--accent-warm);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.solstice-link:hover {
+  background: rgba(245, 158, 11, 0.1);
+  border-style: solid;
+}
+
+.solstice-link svg {
+  color: var(--accent-warm);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .calendar {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .calendar-title {
+    gap: 0.25rem;
+  }
+
+  .month-select {
+    font-size: 1rem;
+  }
+
+  .year-input {
+    width: 70px;
+    font-size: 1rem;
+  }
+
+  .weekday-cell {
+    font-size: 0.65rem;
+    padding: 0.25rem;
+  }
+
+  .day-number {
+    font-size: 0.8rem;
+  }
+
+  .nav-button {
+    width: 36px;
+    height: 36px;
+  }
+}
+

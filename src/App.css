@@ -1,0 +1,95 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: 
+    radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(220, 38, 38, 0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 20% 90%, rgba(124, 58, 237, 0.05) 0%, transparent 40%),
+    var(--bg-primary);
+}
+
+/* Header */
+.header {
+  padding: 1.5rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(15, 15, 15, 0.8);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sun-icon {
+  color: var(--accent-warm);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.logo h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--text-primary) 0%, var(--accent-warm) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Main Content */
+.main {
+  flex: 1;
+  padding: 2rem 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.calendar-section {
+  margin-top: 2rem;
+}
+
+/* Footer */
+.footer {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+  background: rgba(15, 15, 15, 0.6);
+}
+
+.footer p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .logo h1 {
+    font-size: 1.25rem;
+  }
+
+  .main {
+    padding: 1.5rem 0.75rem;
+  }
+}
+
