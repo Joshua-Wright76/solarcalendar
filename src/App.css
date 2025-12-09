@@ -21,7 +21,7 @@
 }
 
 .header-content {
-  max-width: 800px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -55,13 +55,110 @@
 .main {
   flex: 1;
   padding: 2rem 1rem;
-  max-width: 800px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
 
+/* Dashboard Grid Layout */
+.dashboard {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+/* Desktop Dashboard Layout */
+@media (min-width: 1024px) {
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  /* Date Display spans full width */
+  .dashboard-tile.date-tile {
+    grid-column: 1 / -1;
+  }
+
+  /* Calendar takes left column */
+  .dashboard-tile.calendar-tile {
+    grid-column: 1;
+    grid-row: 2 / 4;
+  }
+
+  /* Season wheel and countdown stack on right */
+  .dashboard-tile.season-tile {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .dashboard-tile.countdown-tile {
+    grid-column: 2;
+    grid-row: 3;
+    align-self: start;
+  }
+
+  /* Converter spans full width at bottom */
+  .dashboard-tile.converter-tile {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Larger desktop - 3 column layout */
+@media (min-width: 1280px) {
+  .dashboard {
+    grid-template-columns: 1.2fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  /* Date display with countdown on right */
+  .dashboard-tile.date-tile {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
+
+  .dashboard-tile.countdown-tile {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  /* Calendar takes left column, spanning rows */
+  .dashboard-tile.calendar-tile {
+    grid-column: 1;
+    grid-row: 2 / 4;
+  }
+
+  /* Season wheel in middle */
+  .dashboard-tile.season-tile {
+    grid-column: 2;
+    grid-row: 2 / 4;
+  }
+
+  /* Converter on bottom right */
+  .dashboard-tile.converter-tile {
+    grid-column: 3;
+    grid-row: 2 / 4;
+  }
+}
+
+.dashboard-tile {
+  min-width: 0; /* Prevent grid blowout */
+}
+
+/* Remove extra margins from components in dashboard */
+.dashboard-tile .solstice-countdown {
+  margin-top: 0;
+}
+
+.dashboard-tile .season-wheel {
+  margin-top: 0;
+}
+
+.dashboard-tile .date-converter {
+  margin-top: 0;
+}
+
 .calendar-section {
-  margin-top: 2rem;
+  margin-top: 0;
 }
 
 /* Footer */
@@ -78,7 +175,7 @@
   font-style: italic;
 }
 
-/* Responsive */
+/* Responsive - Mobile */
 @media (max-width: 480px) {
   .header {
     padding: 1rem;
@@ -91,5 +188,35 @@
   .main {
     padding: 1.5rem 0.75rem;
   }
+
+  .dashboard {
+    gap: 1rem;
+  }
 }
 
+/* Tablet layout */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-tile.date-tile {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-tile.calendar-tile {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-tile.season-tile {
+    grid-column: 1;
+  }
+
+  .dashboard-tile.countdown-tile {
+    grid-column: 2;
+  }
+
+  .dashboard-tile.converter-tile {
+    grid-column: 1 / -1;
+  }
+}

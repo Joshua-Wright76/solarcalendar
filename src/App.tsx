@@ -80,45 +80,57 @@ function App() {
       </header>
 
       <main className="main">
-        <DateDisplay 
-          solarDate={solarDate} 
-          gregorianDate={currentDate} 
-          onGoToToday={goToToday}
-        />
-        
-        <SolsticeCountdown currentSolarDate={solarDate} />
-        
-        <div className="calendar-section">
-          {viewMode === 'year' ? (
-            <YearOverview
-              year={viewYear}
-              currentSolarDate={solarDate}
-              onMonthClick={handleMonthChange}
-              onShowSolstice={handleShowSolstice}
-              onBack={handleShowCalendar}
+        <div className="dashboard">
+          <div className="dashboard-tile date-tile">
+            <DateDisplay 
+              solarDate={solarDate} 
+              gregorianDate={currentDate} 
+              onGoToToday={goToToday}
             />
-          ) : viewMode === 'solstice' ? (
-            <SolsticeDays 
-              year={viewYear} 
-              currentSolarDate={solarDate}
-              onShowCalendar={handleShowCalendar}
-            />
-          ) : (
-            <Calendar 
-              month={viewMonth}
-              year={viewYear}
-              currentSolarDate={solarDate}
-              onMonthChange={handleMonthChange}
-              onYearChange={handleYearChange}
-              onShowSolstice={handleShowSolstice}
-              onShowYearOverview={handleShowYearOverview}
-            />
-          )}
+          </div>
+
+          <div className="dashboard-tile countdown-tile">
+            <SolsticeCountdown currentSolarDate={solarDate} />
+          </div>
+          
+          <div className="dashboard-tile calendar-tile">
+            <div className="calendar-section">
+              {viewMode === 'year' ? (
+                <YearOverview
+                  year={viewYear}
+                  currentSolarDate={solarDate}
+                  onMonthClick={handleMonthChange}
+                  onShowSolstice={handleShowSolstice}
+                  onBack={handleShowCalendar}
+                />
+              ) : viewMode === 'solstice' ? (
+                <SolsticeDays 
+                  year={viewYear} 
+                  currentSolarDate={solarDate}
+                  onShowCalendar={handleShowCalendar}
+                />
+              ) : (
+                <Calendar 
+                  month={viewMonth}
+                  year={viewYear}
+                  currentSolarDate={solarDate}
+                  onMonthChange={handleMonthChange}
+                  onYearChange={handleYearChange}
+                  onShowSolstice={handleShowSolstice}
+                  onShowYearOverview={handleShowYearOverview}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="dashboard-tile season-tile">
+            <SeasonWheel currentSolarDate={solarDate} />
+          </div>
+
+          <div className="dashboard-tile converter-tile">
+            <DateConverter />
+          </div>
         </div>
-
-        <SeasonWheel currentSolarDate={solarDate} />
-
-        <DateConverter />
       </main>
 
       <footer className="footer">
