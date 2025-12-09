@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import Database, { Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -10,7 +10,7 @@ const dbPath = process.env.NODE_ENV === 'production'
   ? '/data/solar-calendar.db'
   : path.join(__dirname, '../../solar-calendar.db');
 
-export const db = new Database(dbPath);
+export const db: DatabaseType = new Database(dbPath);
 
 // Enable WAL mode for better concurrent access
 db.pragma('journal_mode = WAL');
