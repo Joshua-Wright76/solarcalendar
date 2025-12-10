@@ -1,4 +1,13 @@
-import { Client, EmbedBuilder, GatewayIntentBits, TextChannel } from 'discord.js'
+import { 
+  Client, 
+  EmbedBuilder, 
+  GatewayIntentBits, 
+  TextChannel,
+  REST,
+  Routes,
+  SlashCommandBuilder,
+  ChatInputCommandInteraction
+} from 'discord.js'
 import cron from 'node-cron'
 import 'dotenv/config'
 import {
@@ -30,6 +39,14 @@ if (!CHANNEL_ID) {
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 })
+
+// Define slash commands
+const commands = [
+  new SlashCommandBuilder()
+    .setName('today')
+    .setDescription('Show today\'s date in the Solar Calendar')
+    .toJSON()
+]
 
 /**
  * Get a seasonal emoji based on the solar month
@@ -64,9 +81,9 @@ function getSeasonColor(solarDate: SolarDate): number {
 }
 
 /**
- * Create the daily calendar embed
+ * Create the calendar embed
  */
-function createDailyEmbed(): EmbedBuilder {
+function createCalendarEmbed(description?: string): EmbedBuilder {
   const now = new Date()
   const solarDate = gregorianToSolar(now)
   const solarFormatted = formatSolarDate(solarDate)
@@ -78,7 +95,7 @@ function createDailyEmbed(): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setColor(seasonColor)
     .setTitle(`${seasonEmoji} Today's Date`)
-    .setDescription('Good morning! Here\'s today in both calendars:')
+    .setDescription(description || 'Here\'s today in both calendars:')
     .addFields(
       {
         name: '🌞 Solar Calendar',
@@ -136,7 +153,7 @@ async function sendDailyMessage(): Promise<void> {
       return
     }
 
-    const embed = createDailyEmbed()
+    const embed = createCalendarEmbed('Good morning! Here\'s today in both calendars:')
     await channel.send({ embeds: [embed] })
     
     console.log(`✅ Daily message sent at ${new Date().toISOString()}`)
@@ -145,12 +162,43 @@ async function sendDailyMessage(): Promise<void> {
   }
 }
 
+/**
+ * Register slash commands with Discord
+ */
+async function registerCommands(): Promise<void> {
+  const rest = new REST({ version: '10' }).setToken(BOT_TOKEN!)
+  
+  try {
+    console.log('🔄 Registering slash commands...')
+    
+    await rest.put(
+      Routes.applicationCommands(client.user!.id),
+      { body: commands }
+    )
+    
+    console.log('✅ Slash commands registered!')
+  } catch (error) {
+    console.error('❌ Error registering slash commands:', error)
+  }
+}
+
+/**
+ * Handle slash command interactions
+ */
+async function handleTodayCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  const embed = createCalendarEmbed()
+  await interaction.reply({ embeds: [embed] })
+}
+
 // Bot ready event
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`✅ Bot logged in as ${client.user?.tag}`)
   console.log(`📅 Scheduled to post daily at: ${CRON_SCHEDULE} (${TIMEZONE})`)
   console.log(`📢 Channel ID: ${CHANNEL_ID}`)
   console.log(`🔗 Website URL: ${WEBSITE_URL}`)
+  
+  // Register slash commands
+  await registerCommands()
   
   // Schedule the daily message
   cron.schedule(CRON_SCHEDULE, () => {
@@ -162,6 +210,15 @@ client.once('ready', () => {
 
   // Send a test message on startup (optional - comment out in production)
   // sendDailyMessage()
+})
+
+// Handle slash command interactions
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isChatInputCommand()) return
+  
+  if (interaction.commandName === 'today') {
+    await handleTodayCommand(interaction)
+  }
 })
 
 // Handle errors

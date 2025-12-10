@@ -5,12 +5,19 @@ A Discord bot that sends a daily embed message showing the current date in both 
 ## Features
 
 - 📅 Daily scheduled messages with beautiful embeds
+- ⚡ `/today` slash command for on-demand calendar info
 - 🌞 Solar Calendar date with day of week
 - 📆 Gregorian Calendar date
 - 🎉 Special messages for Solstice Days
 - 📊 Year progress indicator
 - 🎨 Season-themed colors and emojis
 - 🔗 Link to the full Solar Calendar website
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/today` | Shows today's date in both Solar and Gregorian calendars |
 
 ## Setup
 
@@ -22,7 +29,7 @@ A Discord bot that sends a daily embed message showing the current date in both 
 4. Under "Token", click "Copy" to get your bot token
 5. Under "Privileged Gateway Intents", you don't need any special intents
 6. Go to "OAuth2" > "URL Generator"
-   - Select "bot" under scopes
+   - Select **"bot"** and **"applications.commands"** under scopes
    - Select "Send Messages" and "Embed Links" under bot permissions
 7. Copy the generated URL and use it to invite the bot to your server
 
