@@ -15,7 +15,9 @@ import {
   formatSolarDate,
   formatGregorianDate,
   getSolarDayName,
-  SolarDate
+  SolarDate,
+  SOLAR_MONTHS,
+  SOLAR_DAYS_OF_WEEK
 } from './solarCalendar.js'
 
 // Configuration
@@ -47,6 +49,125 @@ const commands = [
     .setDescription('Show today\'s date in the Solar Calendar')
     .toJSON()
 ]
+
+/**
+ * Get a date offset by a number of days
+ */
+function getDateOffset(date: Date, days: number): Date {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+/**
+ * Format a short solar date (e.g., "Sep 18" or "Sol 3")
+ */
+function formatShortSolarDate(solarDate: SolarDate): string {
+  if (solarDate.isSolsticeDay) {
+    return `Sol ${solarDate.solsticeDay}`
+  }
+  const monthAbbrev = SOLAR_MONTHS[solarDate.month - 1].substring(0, 3)
+  return `${monthAbbrev} ${solarDate.day}`
+}
+
+/**
+ * Format a short Gregorian date (e.g., "Dec 10")
+ */
+function formatShortGregorianDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+/**
+ * Get the solar day abbreviation (e.g., "Mon", "Wed")
+ */
+function getSolarDayAbbrev(solarDate: SolarDate): string {
+  if (solarDate.dayOfWeek === null) {
+    return '✨'  // Solstice days
+  }
+  return SOLAR_DAYS_OF_WEEK[solarDate.dayOfWeek].substring(0, 3)
+}
+
+/**
+ * Get the Gregorian day abbreviation (e.g., "Mon", "Tue")
+ */
+function getGregorianDayAbbrev(date: Date): string {
+  return date.toLocaleDateString('en-US', { weekday: 'short' })
+}
+
+/**
+ * Build the 7-day view string (3 days before, today, 3 days after)
+ */
+function build7DayView(today: Date): string {
+  const lines: string[] = []
+  
+  for (let offset = -3; offset <= 3; offset++) {
+    const date = getDateOffset(today, offset)
+    const solarDate = gregorianToSolar(date)
+    const solarShort = formatShortSolarDate(solarDate)
+    const gregShort = formatShortGregorianDate(date)
+    const solarDay = getSolarDayAbbrev(solarDate)
+    
+    const marker = offset === 0 ? '▶' : '  '
+    const highlight = offset === 0 ? '**' : ''
+    
+    lines.push(`${marker} ${highlight}${solarDay} ${solarShort}${highlight} · ${gregShort}`)
+  }
+  
+  return lines.join('\n')
+}
+
+/**
+ * Build the current solar week view
+ */
+function buildSolarWeekView(today: Date): string {
+  const solarToday = gregorianToSolar(today)
+  
+  // Solstice days don't have weeks
+  if (solarToday.isSolsticeDay) {
+    return '✨ _Solstice Days - outside regular weeks_'
+  }
+  
+  // Solar weeks are 6 days: days 1-6, 7-12, 13-18, 19-24, 25-30 of each month
+  // dayOfWeek is 0-5, so we need to find the start of the current week
+  const dayInMonth = solarToday.day
+  const weekStartDay = dayInMonth - solarToday.dayOfWeek! // Day 1, 7, 13, 19, or 25
+  
+  const weekDays: string[] = []
+  for (let i = 0; i < 6; i++) {
+    const day = weekStartDay + i
+    const isToday = day === dayInMonth
+    const dayName = SOLAR_DAYS_OF_WEEK[i].substring(0, 3)
+    const highlight = isToday ? '**' : ''
+    const marker = isToday ? '•' : ' '
+    weekDays.push(`${marker}${highlight}${dayName} ${day}${highlight}`)
+  }
+  
+  return weekDays.join(' ')
+}
+
+/**
+ * Build the current Gregorian week view (Sunday to Saturday)
+ */
+function buildGregorianWeekView(today: Date): string {
+  // Get the start of the week (Sunday)
+  const startOfWeek = new Date(today)
+  const dayOfWeek = today.getDay() // 0 = Sunday
+  startOfWeek.setDate(today.getDate() - dayOfWeek)
+  
+  const weekDays: string[] = []
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  
+  for (let i = 0; i < 7; i++) {
+    const date = getDateOffset(startOfWeek, i)
+    const isToday = date.toDateString() === today.toDateString()
+    const dayNum = date.getDate()
+    const highlight = isToday ? '**' : ''
+    const marker = isToday ? '•' : ' '
+    weekDays.push(`${marker}${highlight}${dayNames[i]} ${dayNum}${highlight}`)
+  }
+  
+  return weekDays.join(' ')
+}
 
 /**
  * Get a seasonal emoji based on the solar month
@@ -111,10 +232,6 @@ function createCalendarEmbed(description?: string): EmbedBuilder {
       }
     )
     .setURL(WEBSITE_URL)
-    .setFooter({
-      text: 'Solar Calendar • Click title to view full calendar'
-    })
-    .setTimestamp()
 
   // Add special message for Solstice Days
   if (solarDate.isSolsticeDay) {
@@ -125,6 +242,27 @@ function createCalendarEmbed(description?: string): EmbedBuilder {
     })
   }
 
+  // Add 7-day view
+  embed.addFields({
+    name: '📆 7-Day View',
+    value: '```\n' + build7DayView(now) + '\n```',
+    inline: false
+  })
+
+  // Add current weeks
+  embed.addFields(
+    {
+      name: '🌞 Solar Week',
+      value: '`' + buildSolarWeekView(now) + '`',
+      inline: false
+    },
+    {
+      name: '📅 Gregorian Week',
+      value: '`' + buildGregorianWeekView(now) + '`',
+      inline: false
+    }
+  )
+
   // Add day of year info
   const totalDays = solarDate.isLeapYear ? 366 : 365
   embed.addFields({
@@ -132,6 +270,12 @@ function createCalendarEmbed(description?: string): EmbedBuilder {
     value: `Day ${solarDate.dayOfYear} of ${totalDays} (${Math.round((solarDate.dayOfYear / totalDays) * 100)}%)`,
     inline: false
   })
+
+  embed
+    .setFooter({
+      text: 'Solar Calendar • Click title to view full calendar'
+    })
+    .setTimestamp()
 
   return embed
 }
