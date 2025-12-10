@@ -35,6 +35,23 @@ COPY server/ .
 # Build the backend
 RUN npm run build
 
+# Build Discord bot stage
+FROM node:20-alpine AS discord-bot-build
+
+WORKDIR /app/discord-bot
+
+# Copy Discord bot package files
+COPY discord-bot/package*.json ./
+
+# Install Discord bot dependencies
+RUN npm ci
+
+# Copy Discord bot source code
+COPY discord-bot/ .
+
+# Build the Discord bot
+RUN npm run build
+
 # Production stage
 FROM node:20-alpine AS production
 
@@ -56,6 +73,12 @@ COPY --from=backend-build /app/server/dist ./dist
 COPY --from=backend-build /app/server/node_modules ./node_modules
 COPY --from=backend-build /app/server/package.json ./
 
+# Copy Discord bot from build stage
+WORKDIR /app/discord-bot
+COPY --from=discord-bot-build /app/discord-bot/dist ./dist
+COPY --from=discord-bot-build /app/discord-bot/node_modules ./node_modules
+COPY --from=discord-bot-build /app/discord-bot/package.json ./
+
 # Copy supervisor config
 COPY supervisord.conf /etc/supervisord.conf
 
@@ -65,5 +88,5 @@ EXPOSE 80
 # Volume for SQLite database persistence
 VOLUME ["/data"]
 
-# Start supervisor (runs both nginx and node)
+# Start supervisor (runs nginx, api, and discord bot)
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]

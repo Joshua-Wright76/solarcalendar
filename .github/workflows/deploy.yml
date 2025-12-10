@@ -39,19 +39,33 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: COGNITO_USER_POOL_ID,COGNITO_CLIENT_ID,COGNITO_REGION,DISCORD_BOT_TOKEN,DISCORD_CHANNEL_ID,WEBSITE_URL
           script: |
             # Load the Docker image
             gunzip -c /home/ec2-user/image.tar.gz | docker load
+            
+            # Create data directory for SQLite persistence
+            mkdir -p /home/ec2-user/solar-calendar-data
             
             # Stop and remove existing container if it exists
             docker stop solar-calendar 2>/dev/null || true
             docker rm solar-calendar 2>/dev/null || true
             
-            # Run the new container
+            # Run the new container with all environment variables
             docker run -d \
               --name solar-calendar \
               --restart unless-stopped \
               -p 80:80 \
+              -v /home/ec2-user/solar-calendar-data:/data \
+              -e COGNITO_USER_POOL_ID="${{ secrets.COGNITO_USER_POOL_ID }}" \
+              -e COGNITO_CLIENT_ID="${{ secrets.COGNITO_CLIENT_ID }}" \
+              -e COGNITO_REGION="${{ secrets.COGNITO_REGION || 'us-west-2' }}" \
+              -e DISCORD_BOT_TOKEN="${{ secrets.DISCORD_BOT_TOKEN }}" \
+              -e DISCORD_CHANNEL_ID="754114582615949326" \
+              -e WEBSITE_URL="${{ secrets.WEBSITE_URL || 'http://ec2-44-255-192-172.us-west-2.compute.amazonaws.com' }}" \
+              -e CRON_SCHEDULE="0 8 * * *" \
+              -e TIMEZONE="America/New_York" \
+              -e NODE_ENV=production \
               solar-calendar:latest
             
             # Clean up the image file
