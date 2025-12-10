@@ -163,7 +163,7 @@ async function sendDailyMessage(): Promise<void> {
 }
 
 /**
- * Register slash commands with Discord
+ * Register slash commands with Discord (guild-specific for instant registration)
  */
 async function registerCommands(): Promise<void> {
   const rest = new REST({ version: '10' }).setToken(BOT_TOKEN!)
@@ -171,12 +171,23 @@ async function registerCommands(): Promise<void> {
   try {
     console.log('🔄 Registering slash commands...')
     
-    await rest.put(
-      Routes.applicationCommands(client.user!.id),
-      { body: commands }
-    )
-    
-    console.log('✅ Slash commands registered!')
+    // Get the guild ID from the channel to register guild-specific commands (instant)
+    const channel = await client.channels.fetch(CHANNEL_ID!) as TextChannel
+    if (channel && channel.guild) {
+      // Register to specific guild (instant)
+      await rest.put(
+        Routes.applicationGuildCommands(client.user!.id, channel.guild.id),
+        { body: commands }
+      )
+      console.log(`✅ Slash commands registered to guild: ${channel.guild.name}`)
+    } else {
+      // Fallback to global commands (takes up to 1 hour)
+      await rest.put(
+        Routes.applicationCommands(client.user!.id),
+        { body: commands }
+      )
+      console.log('✅ Global slash commands registered (may take up to 1 hour)')
+    }
   } catch (error) {
     console.error('❌ Error registering slash commands:', error)
   }
