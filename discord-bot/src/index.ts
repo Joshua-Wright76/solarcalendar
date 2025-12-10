@@ -19,6 +19,16 @@ import {
   SOLAR_MONTHS,
   SOLAR_DAYS_OF_WEEK
 } from './solarCalendar.js'
+import birthdayData from './birthdays.json' with { type: 'json' }
+
+// Birthday type
+interface Birthday {
+  name: string
+  month: number  // 1-12 solar month
+  day: number    // 1-30 solar day
+}
+
+const birthdays: Birthday[] = birthdayData.birthdays
 
 // Configuration
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN
@@ -170,6 +180,120 @@ function buildGregorianWeekView(today: Date): string {
 }
 
 /**
+ * Get the current solar season name (24 seasons, 2 per month)
+ */
+function getSolarSeason(solarDate: SolarDate): string {
+  if (solarDate.isSolsticeDay) {
+    return '🌞✨ Solstice Celebration ✨🌞'
+  }
+
+  const month = SOLAR_MONTHS[solarDate.month - 1]
+  const day = solarDate.day
+  
+  switch (month) {
+    case 'July':
+      return day <= 15 ? '💥🌞 Summer Bursting 🌞💥' : '🌴🌞 Summer in Repose 🌞🌴'
+    case 'August':
+      return day <= 15 ? '💤🌞 Summer Sleeping 🌞💤' : '👂🍁 Autumn Calling 🍁👂'
+    case 'September':
+      return day <= 15 ? '🍃🍁 Autumn in Flight 🍁🍃' : '🕸️🍁 Autumn in Vain 🍁🕸️'
+    case 'October':
+      return day <= 15 ? '⚡️🍁 Autumn Falling 🍁⚡️' : '🌚🍁 Autumn in Mourning 🍁🌚'
+    case 'November':
+      return day <= 15 ? '🌈🍁 Autumn in Memory 🍁🌈' : '👁️❄️ Winter Awake ❄️👁️'
+    case 'December':
+      return day <= 15 ? '🏔️❄️ Winter Alone ❄️🏔️' : '🎶❄️ Winter Harmonic ❄️🎶'
+    case 'January':
+      return day <= 15 ? '🎊❄️ Winter in Chorus ❄️🎊' : '🥀❄️ Winter in Reprise ❄️🥀'
+    case 'February':
+      return day <= 15 ? '⭐️❄️ Winter All-Aglow ❄️⭐️' : '🌱🌼 Spring in Quiet 🌼🌱'
+    case 'March':
+      return day <= 15 ? '🐝🌼 Spring Bittersweet 🌼🐝' : '🌿🌼 Spring in Bloom 🌼🌿'
+    case 'April':
+      return day <= 15 ? '💐🌼 Spring Overflowing 🌼💐' : '🕊️🌼 Spring Coming Home 🌼🕊️'
+    case 'May':
+      return day <= 15 ? '🚪🌼 Spring At-the-Door 🌼🚪' : '👁️🌞 Summer Waking 🌞👁️'
+    case 'June':
+      return day <= 15 ? '🎶🌞 Summer Singing 🌞🎶' : '🎺🌞 Summer in Glory 🌞🎺'
+    default:
+      return ''
+  }
+}
+
+/**
+ * Get birthdays on a specific solar day
+ */
+function getBirthdaysOnDay(month: number, day: number): Birthday[] {
+  return birthdays.filter(b => b.month === month && b.day === day)
+}
+
+/**
+ * Get upcoming birthdays for the next N days
+ */
+function getUpcomingBirthdays(solarDate: SolarDate, daysAhead: number = 7): { day: number, month: number, names: string[] }[] {
+  if (solarDate.isSolsticeDay) return []
+  
+  const upcoming: { day: number, month: number, names: string[] }[] = []
+  let currentMonth = solarDate.month
+  let currentDay = solarDate.day
+  
+  for (let i = 1; i <= daysAhead; i++) {
+    currentDay++
+    if (currentDay > 30) {
+      currentDay = 1
+      currentMonth++
+      if (currentMonth > 12) {
+        currentMonth = 1
+      }
+    }
+    
+    const bdays = getBirthdaysOnDay(currentMonth, currentDay)
+    if (bdays.length > 0) {
+      upcoming.push({
+        day: currentDay,
+        month: currentMonth,
+        names: bdays.map(b => b.name)
+      })
+    }
+  }
+  
+  return upcoming
+}
+
+/**
+ * Build the birthday display string
+ */
+function buildBirthdayString(solarDate: SolarDate): string | null {
+  if (solarDate.isSolsticeDay) return null
+  
+  const todayBirthdays = getBirthdaysOnDay(solarDate.month, solarDate.day)
+  const upcoming = getUpcomingBirthdays(solarDate, 7)
+  
+  if (todayBirthdays.length === 0 && upcoming.length === 0) {
+    return null
+  }
+  
+  let result = ''
+  
+  // Today's birthdays
+  if (todayBirthdays.length > 0) {
+    const names = todayBirthdays.map(b => b.name).join(', ')
+    result += `🎂 **TODAY:** ${names}\n`
+  }
+  
+  // Upcoming birthdays
+  if (upcoming.length > 0) {
+    const upcomingStr = upcoming.map(u => {
+      const monthAbbrev = SOLAR_MONTHS[u.month - 1].substring(0, 3)
+      return `${monthAbbrev} ${u.day}: ${u.names.join(', ')}`
+    }).join(' · ')
+    result += `🎈 Upcoming: ${upcomingStr}`
+  }
+  
+  return result
+}
+
+/**
  * Get a seasonal emoji based on the solar month
  */
 function getSeasonEmoji(solarDate: SolarDate): string {
@@ -212,6 +336,7 @@ function createCalendarEmbed(description?: string): EmbedBuilder {
   const solarDayName = getSolarDayName(solarDate)
   const seasonEmoji = getSeasonEmoji(solarDate)
   const seasonColor = getSeasonColor(solarDate)
+  const seasonName = getSolarSeason(solarDate)
 
   const embed = new EmbedBuilder()
     .setColor(seasonColor)
@@ -233,11 +358,28 @@ function createCalendarEmbed(description?: string): EmbedBuilder {
     )
     .setURL(WEBSITE_URL)
 
+  // Add season name
+  embed.addFields({
+    name: '🌿 Season',
+    value: `**${seasonName}**`,
+    inline: false
+  })
+
   // Add special message for Solstice Days
   if (solarDate.isSolsticeDay) {
     embed.addFields({
       name: '🎉 Solstice Celebration!',
       value: `Today is **Solstice Day ${solarDate.solsticeDay}** — a special day outside the regular calendar for celebration and reflection!`,
+      inline: false
+    })
+  }
+
+  // Add birthdays
+  const birthdayString = buildBirthdayString(solarDate)
+  if (birthdayString) {
+    embed.addFields({
+      name: '🎂 Birthdays',
+      value: birthdayString,
       inline: false
     })
   }
