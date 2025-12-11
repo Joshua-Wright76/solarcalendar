@@ -21,6 +21,34 @@ import {
 } from './solarCalendar.js'
 import birthdayData from './birthdays.json' with { type: 'json' }
 
+// Moon phase calculation (synodic month ≈ 29.53 days)
+const SYNODIC_MONTH = 29.53059
+const KNOWN_NEW_MOON = new Date(Date.UTC(2000, 0, 6, 18, 14, 0))
+
+function getMoonPhaseEmoji(date: Date): string {
+  const daysSinceNewMoon = (date.getTime() - KNOWN_NEW_MOON.getTime()) / (1000 * 60 * 60 * 24)
+  const phase = (daysSinceNewMoon / SYNODIC_MONTH) % 1
+  
+  if (phase < 0.0625 || phase >= 0.9375) return '🌑'
+  if (phase < 0.1875) return '🌒'
+  if (phase < 0.3125) return '🌓'
+  if (phase < 0.4375) return '🌔'
+  if (phase < 0.5625) return '🌕'
+  if (phase < 0.6875) return '🌖'
+  if (phase < 0.8125) return '🌗'
+  return '🌘'
+}
+
+/**
+ * Build a visual progress bar
+ */
+function buildProgressBar(current: number, total: number, length: number = 15): string {
+  const percentage = Math.round((current / total) * 100)
+  const filled = Math.round((current / total) * length)
+  const empty = length - filled
+  return `${'▓'.repeat(filled)}${'░'.repeat(empty)} ${percentage}% (Day ${current})`
+}
+
 // Birthday type
 interface Birthday {
   name: string
@@ -105,25 +133,24 @@ function getGregorianDayAbbrev(date: Date): string {
 }
 
 /**
- * Build the 7-day view string (3 days before, today, 3 days after)
+ * Build the 7-day view string (compact single line: 17 18 19 [20] 21 22 23)
  */
 function build7DayView(today: Date): string {
-  const lines: string[] = []
+  const days: string[] = []
   
   for (let offset = -3; offset <= 3; offset++) {
     const date = getDateOffset(today, offset)
     const solarDate = gregorianToSolar(date)
-    const solarShort = formatShortSolarDate(solarDate)
-    const gregShort = formatShortGregorianDate(date)
-    const solarDay = getSolarDayAbbrev(solarDate)
+    const dayNum = solarDate.isSolsticeDay ? `S${solarDate.solsticeDay}` : String(solarDate.day)
     
-    const marker = offset === 0 ? '▶' : '  '
-    const highlight = offset === 0 ? '**' : ''
-    
-    lines.push(`${marker} ${highlight}${solarDay} ${solarShort}${highlight} · ${gregShort}`)
+    if (offset === 0) {
+      days.push(`**[${dayNum}]**`)
+    } else {
+      days.push(dayNum)
+    }
   }
   
-  return lines.join('\n')
+  return days.join(' ')
 }
 
 /**
@@ -310,18 +337,16 @@ function getUpcomingBirthdays(solarDate: SolarDate, daysAhead: number = 7): { da
 }
 
 /**
- * Format the offset as a human-readable string
+ * Format offset as compact symbol
  */
-function formatDayOffset(offset: number): string {
-  if (offset === 0) return 'today'
-  if (offset === -1) return 'yesterday'
-  if (offset === 1) return 'tomorrow'
-  if (offset < 0) return `${Math.abs(offset)} days ago`
-  return `in ${offset} days`
+function formatOffsetSymbol(offset: number): string {
+  if (offset === 0) return ''
+  if (offset < 0) return `₋${Math.abs(offset)}`
+  return `₊${offset}`
 }
 
 /**
- * Build the birthday display string
+ * Build the birthday display string (compact symbolic format)
  */
 function buildBirthdayString(solarDate: SolarDate): string | null {
   if (solarDate.isSolsticeDay) return null
@@ -334,33 +359,31 @@ function buildBirthdayString(solarDate: SolarDate): string | null {
     return null
   }
   
-  let result = ''
+  const parts: string[] = []
   
-  // Today's annual birthdays
+  // Today's annual birthdays: 🎂 name
   if (todayBirthdays.length > 0) {
-    const names = todayBirthdays.map(b => b.name).join(', ')
-    result += `🎂 **TODAY:** ${names}\n`
+    parts.push(`🎂 **${todayBirthdays.map(b => b.name).join(', ')}**`)
   }
   
-  // Upcoming annual birthdays
+  // Upcoming annual birthdays: 🎈 name (day)
   if (upcoming.length > 0) {
-    const upcomingStr = upcoming.map(u => {
-      const monthAbbrev = SOLAR_MONTHS[u.month - 1].substring(0, 3)
-      return `${monthAbbrev} ${u.day}: ${u.names.join(', ')}`
-    }).join(' · ')
-    result += `🎈 Upcoming: ${upcomingStr}\n`
+    const upcomingStr = upcoming.map(u => 
+      `${u.names.join(', ')}₊${u.day - solarDate.day > 0 ? u.day - solarDate.day : u.day + 30 - solarDate.day}`
+    ).join(' ')
+    parts.push(`🎈 ${upcomingStr}`)
   }
   
-  // Monthly birthdays (sorted by offset)
+  // Monthly birthdays: 🧁 name↺ (with offset)
   if (monthlyBirthdays.length > 0) {
     const monthlyStr = monthlyBirthdays
       .sort((a, b) => a.offset - b.offset)
-      .map(m => `${m.names.join(', ')} (${formatDayOffset(m.offset)})`)
-      .join(' · ')
-    result += `🧁 Monthly: ${monthlyStr}`
+      .map(m => `${m.names.join(', ')}↺${formatOffsetSymbol(m.offset)}`)
+      .join(' ')
+    parts.push(`🧁 ${monthlyStr}`)
   }
   
-  return result.trim()
+  return parts.join('  ')
 }
 
 /**
@@ -396,91 +419,73 @@ function getSeasonColor(solarDate: SolarDate): number {
 }
 
 /**
- * Create the calendar embed
+ * Create the calendar embed (compact version)
  */
-function createCalendarEmbed(description?: string): EmbedBuilder {
+function createCalendarEmbed(): EmbedBuilder {
   const now = new Date()
   const solarDate = gregorianToSolar(now)
-  const solarFormatted = formatSolarDate(solarDate)
-  const gregorianFormatted = formatGregorianDate(now)
   const solarDayName = getSolarDayName(solarDate)
   const seasonEmoji = getSeasonEmoji(solarDate)
   const seasonColor = getSeasonColor(solarDate)
   const seasonName = getSolarSeason(solarDate)
+  const moonEmoji = getMoonPhaseEmoji(now)
+  
+  // Build compact date strings
+  const solarDayAbbrev = solarDate.isSolsticeDay ? '✨' : SOLAR_DAYS_OF_WEEK[solarDate.dayOfWeek!].substring(0, 3)
+  const solarMonthAbbrev = solarDate.isSolsticeDay ? 'Sol' : SOLAR_MONTHS[solarDate.month - 1].substring(0, 3)
+  const solarDateStr = solarDate.isSolsticeDay 
+    ? `${solarDayAbbrev} · Sol ${solarDate.solsticeDay}, Y${solarDate.year}`
+    : `${solarDayAbbrev} · ${solarMonthAbbrev} ${solarDate.day}, Y${solarDate.year}`
+  
+  const gregDayAbbrev = now.toLocaleDateString('en-US', { weekday: 'short' })
+  const gregMonthAbbrev = now.toLocaleDateString('en-US', { month: 'short' })
+  const gregDateStr = `${gregDayAbbrev} · ${gregMonthAbbrev} ${now.getDate()}, ${now.getFullYear()}`
+  
+  // Combined date line
+  const combinedDate = `🌞 ${solarDateStr}  ⟷  📅 ${gregDateStr}`
 
   const embed = new EmbedBuilder()
     .setColor(seasonColor)
-    .setTitle(`${seasonEmoji} Today's Date`)
-    .setDescription(description || 'Here\'s today in both calendars:')
-    .addFields(
-      {
-        name: '🌞 Solar Calendar',
-        value: solarDayName 
-          ? `**${solarDayName}**\n${solarFormatted}`
-          : `**${solarFormatted}**\n✨ _Outside the regular week_`,
-        inline: true
-      },
-      {
-        name: '📅 Gregorian Calendar',
-        value: gregorianFormatted,
-        inline: true
-      }
-    )
+    .setTitle(`${seasonEmoji} ${moonEmoji} Today`)
     .setURL(WEBSITE_URL)
-
-  // Add season name
-  embed.addFields({
-    name: '🌿 Season',
-    value: `**${seasonName}**`,
-    inline: false
-  })
+    .addFields({
+      name: combinedDate,
+      value: `**${seasonName}**`,
+      inline: false
+    })
 
   // Add special message for Solstice Days
   if (solarDate.isSolsticeDay) {
     embed.addFields({
       name: '🎉 Solstice Celebration!',
-      value: `Today is **Solstice Day ${solarDate.solsticeDay}** — a special day outside the regular calendar for celebration and reflection!`,
+      value: `**Solstice Day ${solarDate.solsticeDay}** — outside the regular calendar!`,
       inline: false
     })
   }
 
-  // Add birthdays
+  // Add birthdays (compact)
   const birthdayString = buildBirthdayString(solarDate)
   if (birthdayString) {
     embed.addFields({
-      name: '🎂 Birthdays',
+      name: '🎁',
       value: birthdayString,
       inline: false
     })
   }
 
-  // Add 7-day view
+  // Add compact 7-day view
   embed.addFields({
-    name: '📆 7-Day View',
+    name: '📆 Week',
     value: build7DayView(now),
-    inline: false
+    inline: true
   })
 
-  // Add current weeks
-  embed.addFields(
-    {
-      name: '🌞 Solar Week',
-      value: buildSolarWeekView(now),
-      inline: false
-    },
-    {
-      name: '📅 Gregorian Week',
-      value: buildGregorianWeekView(now),
-      inline: false
-    }
-  )
-
-  // Add day of year info
+  // Add year progress with visual bar
   const totalDays = solarDate.isLeapYear ? 366 : 365
   embed.addFields({
-    name: '📊 Year Progress',
-    value: `Day ${solarDate.dayOfYear} of ${totalDays} (${Math.round((solarDate.dayOfYear / totalDays) * 100)}%)`,
-    inline: false
+    name: '📊 Year',
+    value: buildProgressBar(solarDate.dayOfYear, totalDays),
+    inline: true
   })
 
   embed
@@ -509,7 +514,7 @@ async function sendDailyMessage(): Promise<void> {
       return
     }
 
-    const embed = createCalendarEmbed('Good morning! Here\'s today in both calendars:')
+    const embed = createCalendarEmbed()
     await channel.send({ embeds: [embed] })
     
     console.log(`✅ Daily message sent at ${new Date().toISOString()}`)
