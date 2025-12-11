@@ -221,10 +221,59 @@ function getSolarSeason(solarDate: SolarDate): string {
 }
 
 /**
- * Get birthdays on a specific solar day
+ * Get birthdays on a specific solar day (annual birthday)
  */
 function getBirthdaysOnDay(month: number, day: number): Birthday[] {
   return birthdays.filter(b => b.month === month && b.day === day)
+}
+
+/**
+ * Get monthly birthdays on a specific day (people whose birthday falls on this day number,
+ * but NOT in the current month - to avoid duplicating annual birthdays)
+ */
+function getMonthlyBirthdaysOnDay(month: number, day: number): Birthday[] {
+  return birthdays.filter(b => b.day === day && b.month !== month)
+}
+
+/**
+ * Get monthly birthdays in a range around today (last N days and next N days)
+ */
+function getMonthlyBirthdaysInRange(solarDate: SolarDate, daysBefore: number = 3, daysAfter: number = 3): { 
+  offset: number, 
+  day: number, 
+  names: string[] 
+}[] {
+  if (solarDate.isSolsticeDay) return []
+  
+  const results: { offset: number, day: number, names: string[] }[] = []
+  
+  // Check days before and after (including today at offset 0)
+  for (let offset = -daysBefore; offset <= daysAfter; offset++) {
+    let checkDay = solarDate.day + offset
+    let checkMonth = solarDate.month
+    
+    // Handle month boundaries
+    if (checkDay < 1) {
+      checkDay += 30
+      checkMonth--
+      if (checkMonth < 1) checkMonth = 12
+    } else if (checkDay > 30) {
+      checkDay -= 30
+      checkMonth++
+      if (checkMonth > 12) checkMonth = 1
+    }
+    
+    const monthlyBdays = getMonthlyBirthdaysOnDay(checkMonth, checkDay)
+    if (monthlyBdays.length > 0) {
+      results.push({
+        offset,
+        day: checkDay,
+        names: monthlyBdays.map(b => b.name)
+      })
+    }
+  }
+  
+  return results
 }
 
 /**
@@ -261,6 +310,17 @@ function getUpcomingBirthdays(solarDate: SolarDate, daysAhead: number = 7): { da
 }
 
 /**
+ * Format the offset as a human-readable string
+ */
+function formatDayOffset(offset: number): string {
+  if (offset === 0) return 'today'
+  if (offset === -1) return 'yesterday'
+  if (offset === 1) return 'tomorrow'
+  if (offset < 0) return `${Math.abs(offset)} days ago`
+  return `in ${offset} days`
+}
+
+/**
  * Build the birthday display string
  */
 function buildBirthdayString(solarDate: SolarDate): string | null {
@@ -268,29 +328,39 @@ function buildBirthdayString(solarDate: SolarDate): string | null {
   
   const todayBirthdays = getBirthdaysOnDay(solarDate.month, solarDate.day)
   const upcoming = getUpcomingBirthdays(solarDate, 7)
+  const monthlyBirthdays = getMonthlyBirthdaysInRange(solarDate, 3, 3)
   
-  if (todayBirthdays.length === 0 && upcoming.length === 0) {
+  if (todayBirthdays.length === 0 && upcoming.length === 0 && monthlyBirthdays.length === 0) {
     return null
   }
   
   let result = ''
   
-  // Today's birthdays
+  // Today's annual birthdays
   if (todayBirthdays.length > 0) {
     const names = todayBirthdays.map(b => b.name).join(', ')
     result += `🎂 **TODAY:** ${names}\n`
   }
   
-  // Upcoming birthdays
+  // Upcoming annual birthdays
   if (upcoming.length > 0) {
     const upcomingStr = upcoming.map(u => {
       const monthAbbrev = SOLAR_MONTHS[u.month - 1].substring(0, 3)
       return `${monthAbbrev} ${u.day}: ${u.names.join(', ')}`
     }).join(' · ')
-    result += `🎈 Upcoming: ${upcomingStr}`
+    result += `🎈 Upcoming: ${upcomingStr}\n`
   }
   
-  return result
+  // Monthly birthdays (sorted by offset)
+  if (monthlyBirthdays.length > 0) {
+    const monthlyStr = monthlyBirthdays
+      .sort((a, b) => a.offset - b.offset)
+      .map(m => `${m.names.join(', ')} (${formatDayOffset(m.offset)})`)
+      .join(' · ')
+    result += `🧁 Monthly: ${monthlyStr}`
+  }
+  
+  return result.trim()
 }
 
 /**
