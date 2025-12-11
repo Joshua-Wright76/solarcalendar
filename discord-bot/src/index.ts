@@ -3,10 +3,12 @@ import {
   EmbedBuilder, 
   GatewayIntentBits, 
   TextChannel,
+  ChannelType,
   REST,
   Routes,
   SlashCommandBuilder,
-  ChatInputCommandInteraction
+  ChatInputCommandInteraction,
+  PermissionFlagsBits
 } from 'discord.js'
 import cron from 'node-cron'
 import 'dotenv/config'
@@ -19,7 +21,21 @@ import {
   SOLAR_MONTHS,
   SOLAR_DAYS_OF_WEEK
 } from './solarCalendar.js'
-import birthdayData from './birthdays.json' with { type: 'json' }
+import {
+  getServerSettings,
+  setDailyChannel,
+  removeDailyChannel,
+  setTimezone,
+  getAllConfiguredGuilds,
+  setBirthday,
+  removeBirthday,
+  getGuildBirthdays,
+  getBirthdaysOnDate,
+  getBirthdaysOnDay,
+  getUserBirthday,
+  type Birthday,
+  type ServerSettings
+} from './database.js'
 
 // Moon phase calculation (synodic month ≈ 29.53 days)
 const SYNODIC_MONTH = 29.53059
@@ -49,44 +65,93 @@ function buildProgressBar(current: number, total: number, length: number = 15): 
   return `${'▓'.repeat(filled)}${'░'.repeat(empty)} ${percentage}% (Day ${current})`
 }
 
-// Birthday type
-interface Birthday {
-  name: string
-  month: number  // 1-12 solar month
-  day: number    // 1-30 solar day
-}
-
-const birthdays: Birthday[] = birthdayData.birthdays
-
 // Configuration
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN
-const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://solar-calendar.com'
-const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 8 * * *'
-const TIMEZONE = process.env.TIMEZONE || 'America/New_York'
+const DEFAULT_CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 8 * * *'
+const DEFAULT_TIMEZONE = process.env.TIMEZONE || 'America/New_York'
 
 if (!BOT_TOKEN) {
   console.error('❌ DISCORD_BOT_TOKEN is required in .env')
   process.exit(1)
 }
 
-if (!CHANNEL_ID) {
-  console.error('❌ DISCORD_CHANNEL_ID is required in .env')
-  process.exit(1)
-}
-
 // Create Discord client
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
 })
 
 // Define slash commands
 const commands = [
   new SlashCommandBuilder()
     .setName('today')
-    .setDescription('Show today\'s date in the Solar Calendar')
-    .toJSON()
-]
+    .setDescription('Show today\'s date in the Solar Calendar'),
+  
+  new SlashCommandBuilder()
+    .setName('setchannel')
+    .setDescription('Set the channel for daily solar calendar messages')
+    .addChannelOption(option =>
+      option
+        .setName('channel')
+        .setDescription('The channel to send daily messages to')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  
+  new SlashCommandBuilder()
+    .setName('removechannel')
+    .setDescription('Stop sending daily solar calendar messages')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  
+  new SlashCommandBuilder()
+    .setName('addbirthday')
+    .setDescription('Add your birthday to the solar calendar')
+    .addIntegerOption(option =>
+      option
+        .setName('month')
+        .setDescription('Solar month (1=July, 2=August, ... 12=June)')
+        .setRequired(true)
+        .setMinValue(1)
+        .setMaxValue(12)
+    )
+    .addIntegerOption(option =>
+      option
+        .setName('day')
+        .setDescription('Solar day (1-30)')
+        .setRequired(true)
+        .setMinValue(1)
+        .setMaxValue(30)
+    )
+    .addUserOption(option =>
+      option
+        .setName('user')
+        .setDescription('User to add birthday for (admin only, defaults to yourself)')
+        .setRequired(false)
+    ),
+  
+  new SlashCommandBuilder()
+    .setName('removebirthday')
+    .setDescription('Remove a birthday from the solar calendar')
+    .addUserOption(option =>
+      option
+        .setName('user')
+        .setDescription('User to remove birthday for (admin only, defaults to yourself)')
+        .setRequired(false)
+    ),
+  
+  new SlashCommandBuilder()
+    .setName('listbirthdays')
+    .setDescription('List all birthdays in this server'),
+  
+  new SlashCommandBuilder()
+    .setName('mybirthday')
+    .setDescription('Show your birthday in the solar calendar'),
+  
+  new SlashCommandBuilder()
+    .setName('settings')
+    .setDescription('View current server settings for the solar calendar bot')
+].map(cmd => cmd.toJSON())
 
 /**
  * Get a date offset by a number of days
@@ -248,24 +313,25 @@ function getSolarSeason(solarDate: SolarDate): string {
 }
 
 /**
- * Get birthdays on a specific solar day (annual birthday)
+ * Get birthdays on a specific solar day (annual birthday) for a guild
  */
-function getBirthdaysOnDay(month: number, day: number): Birthday[] {
-  return birthdays.filter(b => b.month === month && b.day === day)
+function getGuildBirthdaysOnDate(guildId: string, month: number, day: number): Birthday[] {
+  return getBirthdaysOnDate(guildId, month, day)
 }
 
 /**
  * Get monthly birthdays on a specific day (people whose birthday falls on this day number,
  * but NOT in the current month - to avoid duplicating annual birthdays)
  */
-function getMonthlyBirthdaysOnDay(month: number, day: number): Birthday[] {
-  return birthdays.filter(b => b.day === day && b.month !== month)
+function getMonthlyBirthdaysOnDayForGuild(guildId: string, month: number, day: number): Birthday[] {
+  const allOnDay = getBirthdaysOnDay(guildId, day)
+  return allOnDay.filter(b => b.month !== month)
 }
 
 /**
  * Get monthly birthdays in a range around today (last N days and next N days)
  */
-function getMonthlyBirthdaysInRange(solarDate: SolarDate, daysBefore: number = 3, daysAfter: number = 3): { 
+function getMonthlyBirthdaysInRange(guildId: string, solarDate: SolarDate, daysBefore: number = 3, daysAfter: number = 3): { 
   offset: number, 
   day: number, 
   names: string[] 
@@ -290,12 +356,12 @@ function getMonthlyBirthdaysInRange(solarDate: SolarDate, daysBefore: number = 3
       if (checkMonth > 12) checkMonth = 1
     }
     
-    const monthlyBdays = getMonthlyBirthdaysOnDay(checkMonth, checkDay)
+    const monthlyBdays = getMonthlyBirthdaysOnDayForGuild(guildId, checkMonth, checkDay)
     if (monthlyBdays.length > 0) {
       results.push({
         offset,
         day: checkDay,
-        names: monthlyBdays.map(b => b.name)
+        names: monthlyBdays.map(b => b.user_name)
       })
     }
   }
@@ -304,9 +370,9 @@ function getMonthlyBirthdaysInRange(solarDate: SolarDate, daysBefore: number = 3
 }
 
 /**
- * Get upcoming birthdays for the next N days
+ * Get upcoming birthdays for the next N days for a guild
  */
-function getUpcomingBirthdays(solarDate: SolarDate, daysAhead: number = 7): { day: number, month: number, names: string[] }[] {
+function getUpcomingBirthdays(guildId: string, solarDate: SolarDate, daysAhead: number = 7): { day: number, month: number, names: string[] }[] {
   if (solarDate.isSolsticeDay) return []
   
   const upcoming: { day: number, month: number, names: string[] }[] = []
@@ -323,12 +389,12 @@ function getUpcomingBirthdays(solarDate: SolarDate, daysAhead: number = 7): { da
       }
     }
     
-    const bdays = getBirthdaysOnDay(currentMonth, currentDay)
+    const bdays = getGuildBirthdaysOnDate(guildId, currentMonth, currentDay)
     if (bdays.length > 0) {
       upcoming.push({
         day: currentDay,
         month: currentMonth,
-        names: bdays.map(b => b.name)
+        names: bdays.map(b => b.user_name)
       })
     }
   }
@@ -348,12 +414,12 @@ function formatOffsetSymbol(offset: number): string {
 /**
  * Build the birthday display string (compact symbolic format)
  */
-function buildBirthdayString(solarDate: SolarDate): string | null {
+function buildBirthdayString(guildId: string, solarDate: SolarDate): string | null {
   if (solarDate.isSolsticeDay) return null
   
-  const todayBirthdays = getBirthdaysOnDay(solarDate.month, solarDate.day)
-  const upcoming = getUpcomingBirthdays(solarDate, 7)
-  const monthlyBirthdays = getMonthlyBirthdaysInRange(solarDate, 3, 3)
+  const todayBirthdays = getGuildBirthdaysOnDate(guildId, solarDate.month, solarDate.day)
+  const upcoming = getUpcomingBirthdays(guildId, solarDate, 7)
+  const monthlyBirthdays = getMonthlyBirthdaysInRange(guildId, solarDate, 3, 3)
   
   if (todayBirthdays.length === 0 && upcoming.length === 0 && monthlyBirthdays.length === 0) {
     return null
@@ -363,7 +429,7 @@ function buildBirthdayString(solarDate: SolarDate): string | null {
   
   // Today's annual birthdays: 🎂 name
   if (todayBirthdays.length > 0) {
-    parts.push(`🎂 **${todayBirthdays.map(b => b.name).join(', ')}**`)
+    parts.push(`🎂 **${todayBirthdays.map(b => b.user_name).join(', ')}**`)
   }
   
   // Upcoming annual birthdays: 🎈 name (day)
@@ -516,7 +582,7 @@ function getSeasonColor(solarDate: SolarDate): number {
 /**
  * Create the calendar embed (compact version)
  */
-function createCalendarEmbed(): EmbedBuilder {
+function createCalendarEmbed(guildId?: string): EmbedBuilder {
   const now = new Date()
   const solarDate = gregorianToSolar(now)
   const solarDayName = getSolarDayName(solarDate)
@@ -565,14 +631,16 @@ function createCalendarEmbed(): EmbedBuilder {
     })
   }
 
-  // Add birthdays (compact)
-  const birthdayString = buildBirthdayString(solarDate)
-  if (birthdayString) {
-    embed.addFields({
-      name: '🎁',
-      value: birthdayString,
-      inline: false
-    })
+  // Add birthdays (compact) - only if guild ID is provided
+  if (guildId) {
+    const birthdayString = buildBirthdayString(guildId, solarDate)
+    if (birthdayString) {
+      embed.addFields({
+        name: '🎁',
+        value: birthdayString,
+        inline: false
+      })
+    }
   }
 
   // Add compact 7-day view
@@ -600,98 +668,330 @@ function createCalendarEmbed(): EmbedBuilder {
 }
 
 /**
- * Send the daily message to the configured channel
+ * Send the daily message to all configured guilds
  */
-async function sendDailyMessage(): Promise<void> {
-  try {
-    const channel = await client.channels.fetch(CHANNEL_ID!) as TextChannel
-    
-    if (!channel) {
-      console.error('❌ Could not find channel:', CHANNEL_ID)
-      return
-    }
+async function sendDailyMessages(): Promise<void> {
+  const configuredGuilds = getAllConfiguredGuilds()
+  
+  if (configuredGuilds.length === 0) {
+    console.log('📭 No guilds configured for daily messages')
+    return
+  }
+  
+  console.log(`📤 Sending daily messages to ${configuredGuilds.length} guild(s)...`)
+  
+  for (const settings of configuredGuilds) {
+    try {
+      const channel = await client.channels.fetch(settings.channel_id!) as TextChannel
+      
+      if (!channel) {
+        console.error(`❌ Could not find channel: ${settings.channel_id} for guild ${settings.guild_id}`)
+        continue
+      }
 
-    if (!channel.isTextBased()) {
-      console.error('❌ Channel is not a text channel')
-      return
-    }
+      if (!channel.isTextBased()) {
+        console.error(`❌ Channel is not a text channel for guild ${settings.guild_id}`)
+        continue
+      }
 
-    const embed = createCalendarEmbed()
-    await channel.send({ embeds: [embed] })
-    
-    console.log(`✅ Daily message sent at ${new Date().toISOString()}`)
-  } catch (error) {
-    console.error('❌ Error sending daily message:', error)
+      const embed = createCalendarEmbed(settings.guild_id)
+      await channel.send({ embeds: [embed] })
+      
+      console.log(`✅ Daily message sent to guild ${settings.guild_id} at ${new Date().toISOString()}`)
+    } catch (error) {
+      console.error(`❌ Error sending daily message to guild ${settings.guild_id}:`, error)
+    }
   }
 }
 
 /**
- * Register slash commands with Discord (guild-specific for instant registration)
+ * Register slash commands with Discord globally
  */
 async function registerCommands(): Promise<void> {
   const rest = new REST({ version: '10' }).setToken(BOT_TOKEN!)
   
   try {
-    console.log('🔄 Registering slash commands...')
+    console.log('🔄 Registering slash commands globally...')
     
-    // Get the guild ID from the channel to register guild-specific commands (instant)
-    const channel = await client.channels.fetch(CHANNEL_ID!) as TextChannel
-    if (channel && channel.guild) {
-      // Register to specific guild (instant)
-      await rest.put(
-        Routes.applicationGuildCommands(client.user!.id, channel.guild.id),
-        { body: commands }
-      )
-      console.log(`✅ Slash commands registered to guild: ${channel.guild.name}`)
-    } else {
-      // Fallback to global commands (takes up to 1 hour)
-      await rest.put(
-        Routes.applicationCommands(client.user!.id),
-        { body: commands }
-      )
-      console.log('✅ Global slash commands registered (may take up to 1 hour)')
-    }
+    await rest.put(
+      Routes.applicationCommands(client.user!.id),
+      { body: commands }
+    )
+    console.log('✅ Global slash commands registered (may take up to 1 hour to propagate)')
   } catch (error) {
     console.error('❌ Error registering slash commands:', error)
   }
 }
 
 /**
- * Handle slash command interactions
+ * Handle /today command
  */
 async function handleTodayCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-  const embed = createCalendarEmbed()
+  const guildId = interaction.guildId
+  const embed = createCalendarEmbed(guildId || undefined)
   await interaction.reply({ embeds: [embed] })
+}
+
+/**
+ * Handle /setchannel command
+ */
+async function handleSetChannelCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true })
+    return
+  }
+  
+  const channel = interaction.options.getChannel('channel', true)
+  setDailyChannel(interaction.guildId, channel.id)
+  
+  await interaction.reply({
+    content: `✅ Daily solar calendar messages will now be sent to <#${channel.id}>`,
+    ephemeral: true
+  })
+}
+
+/**
+ * Handle /removechannel command
+ */
+async function handleRemoveChannelCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true })
+    return
+  }
+  
+  removeDailyChannel(interaction.guildId)
+  
+  await interaction.reply({
+    content: '✅ Daily solar calendar messages have been disabled for this server.',
+    ephemeral: true
+  })
+}
+
+/**
+ * Handle /addbirthday command
+ */
+async function handleAddBirthdayCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true })
+    return
+  }
+  
+  const month = interaction.options.getInteger('month', true)
+  const day = interaction.options.getInteger('day', true)
+  const targetUser = interaction.options.getUser('user')
+  
+  // If a user option was provided and it's not the command user, check permissions
+  if (targetUser && targetUser.id !== interaction.user.id) {
+    const member = interaction.member
+    if (!member || typeof member.permissions === 'string' || !member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+      await interaction.reply({
+        content: '❌ You need the "Manage Server" permission to add birthdays for other users.',
+        ephemeral: true
+      })
+      return
+    }
+  }
+  
+  const user = targetUser || interaction.user
+  const userName = user.displayName || user.username
+  
+  setBirthday(interaction.guildId, user.id, userName, month, day)
+  
+  const monthName = SOLAR_MONTHS[month - 1]
+  await interaction.reply({
+    content: `🎂 Birthday set for **${userName}**: ${monthName} ${day} (Solar Calendar)`,
+    ephemeral: false
+  })
+}
+
+/**
+ * Handle /removebirthday command
+ */
+async function handleRemoveBirthdayCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true })
+    return
+  }
+  
+  const targetUser = interaction.options.getUser('user')
+  
+  // If a user option was provided and it's not the command user, check permissions
+  if (targetUser && targetUser.id !== interaction.user.id) {
+    const member = interaction.member
+    if (!member || typeof member.permissions === 'string' || !member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+      await interaction.reply({
+        content: '❌ You need the "Manage Server" permission to remove birthdays for other users.',
+        ephemeral: true
+      })
+      return
+    }
+  }
+  
+  const user = targetUser || interaction.user
+  const removed = removeBirthday(interaction.guildId, user.id)
+  
+  if (removed) {
+    await interaction.reply({
+      content: `✅ Birthday removed for **${user.displayName || user.username}**`,
+      ephemeral: false
+    })
+  } else {
+    await interaction.reply({
+      content: `❌ No birthday found for **${user.displayName || user.username}**`,
+      ephemeral: true
+    })
+  }
+}
+
+/**
+ * Handle /listbirthdays command
+ */
+async function handleListBirthdaysCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true })
+    return
+  }
+  
+  const birthdays = getGuildBirthdays(interaction.guildId)
+  
+  if (birthdays.length === 0) {
+    await interaction.reply({
+      content: '📅 No birthdays have been added to this server yet. Use `/addbirthday` to add one!',
+      ephemeral: false
+    })
+    return
+  }
+  
+  const birthdayList = birthdays.map(b => {
+    const monthName = SOLAR_MONTHS[b.month - 1]
+    return `• **${b.user_name}**: ${monthName} ${b.day}`
+  }).join('\n')
+  
+  const embed = new EmbedBuilder()
+    .setColor(0xFFD700)
+    .setTitle('🎂 Server Birthdays (Solar Calendar)')
+    .setDescription(birthdayList)
+    .setFooter({ text: `${birthdays.length} birthday(s) registered` })
+  
+  await interaction.reply({ embeds: [embed] })
+}
+
+/**
+ * Handle /mybirthday command
+ */
+async function handleMyBirthdayCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true })
+    return
+  }
+  
+  const birthday = getUserBirthday(interaction.guildId, interaction.user.id)
+  
+  if (!birthday) {
+    await interaction.reply({
+      content: '❌ You haven\'t set your birthday yet. Use `/addbirthday` to add it!',
+      ephemeral: true
+    })
+    return
+  }
+  
+  const monthName = SOLAR_MONTHS[birthday.month - 1]
+  await interaction.reply({
+    content: `🎂 Your birthday is set to: **${monthName} ${birthday.day}** (Solar Calendar)`,
+    ephemeral: true
+  })
+}
+
+/**
+ * Handle /settings command
+ */
+async function handleSettingsCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true })
+    return
+  }
+  
+  const settings = getServerSettings(interaction.guildId)
+  const birthdays = getGuildBirthdays(interaction.guildId)
+  
+  const channelStatus = settings.channel_id 
+    ? `<#${settings.channel_id}>` 
+    : '_Not configured_'
+  
+  const embed = new EmbedBuilder()
+    .setColor(0x4A90D9)
+    .setTitle('⚙️ Solar Calendar Bot Settings')
+    .addFields(
+      { name: '📢 Daily Message Channel', value: channelStatus, inline: true },
+      { name: '🎂 Registered Birthdays', value: `${birthdays.length} birthday(s)`, inline: true }
+    )
+    .setFooter({ text: 'Use /setchannel to configure • /addbirthday to add birthdays' })
+  
+  await interaction.reply({ embeds: [embed], ephemeral: true })
 }
 
 // Bot ready event
 client.once('ready', async () => {
   console.log(`✅ Bot logged in as ${client.user?.tag}`)
-  console.log(`📅 Scheduled to post daily at: ${CRON_SCHEDULE} (${TIMEZONE})`)
-  console.log(`📢 Channel ID: ${CHANNEL_ID}`)
+  console.log(`📅 Scheduled to post daily at: ${DEFAULT_CRON_SCHEDULE} (${DEFAULT_TIMEZONE})`)
   console.log(`🔗 Website URL: ${WEBSITE_URL}`)
+  console.log(`💾 Using persistent SQLite database for server settings`)
   
   // Register slash commands
   await registerCommands()
   
   // Schedule the daily message
-  cron.schedule(CRON_SCHEDULE, () => {
-    console.log('⏰ Cron triggered, sending daily message...')
-    sendDailyMessage()
+  cron.schedule(DEFAULT_CRON_SCHEDULE, () => {
+    console.log('⏰ Cron triggered, sending daily messages...')
+    sendDailyMessages()
   }, {
-    timezone: TIMEZONE
+    timezone: DEFAULT_TIMEZONE
   })
 
   // Send a test message on startup (optional - comment out in production)
-  // sendDailyMessage()
+  // sendDailyMessages()
 })
 
 // Handle slash command interactions
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return
   
-  if (interaction.commandName === 'today') {
-    await handleTodayCommand(interaction)
+  try {
+    switch (interaction.commandName) {
+      case 'today':
+        await handleTodayCommand(interaction)
+        break
+      case 'setchannel':
+        await handleSetChannelCommand(interaction)
+        break
+      case 'removechannel':
+        await handleRemoveChannelCommand(interaction)
+        break
+      case 'addbirthday':
+        await handleAddBirthdayCommand(interaction)
+        break
+      case 'removebirthday':
+        await handleRemoveBirthdayCommand(interaction)
+        break
+      case 'listbirthdays':
+        await handleListBirthdaysCommand(interaction)
+        break
+      case 'mybirthday':
+        await handleMyBirthdayCommand(interaction)
+        break
+      case 'settings':
+        await handleSettingsCommand(interaction)
+        break
+    }
+  } catch (error) {
+    console.error(`❌ Error handling command ${interaction.commandName}:`, error)
+    const reply = interaction.replied || interaction.deferred
+      ? interaction.followUp
+      : interaction.reply
+    await reply.call(interaction, { 
+      content: '❌ An error occurred while processing the command.', 
+      ephemeral: true 
+    })
   }
 })
 

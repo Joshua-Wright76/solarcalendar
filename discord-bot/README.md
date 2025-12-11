@@ -12,12 +12,21 @@ A Discord bot that sends a daily embed message showing the current date in both 
 - 📊 Year progress indicator
 - 🎨 Season-themed colors and emojis
 - 🔗 Link to the full Solar Calendar website
+- 💾 Per-server settings stored in SQLite database
+- 🎂 Birthday tracking with annual and monthly celebrations
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `/today` | Shows today's date in both Solar and Gregorian calendars |
+| Command | Description | Permission |
+|---------|-------------|------------|
+| `/today` | Shows today's date in both Solar and Gregorian calendars | Everyone |
+| `/setchannel` | Set the channel for daily solar calendar messages | Manage Server |
+| `/removechannel` | Stop sending daily messages | Manage Server |
+| `/addbirthday` | Add your birthday (or another user's with admin) | Everyone |
+| `/removebirthday` | Remove your birthday (or another user's with admin) | Everyone |
+| `/listbirthdays` | List all birthdays in this server | Everyone |
+| `/mybirthday` | Show your registered birthday | Everyone |
+| `/settings` | View current server settings | Everyone |
 
 ## Setup
 
@@ -33,13 +42,7 @@ A Discord bot that sends a daily embed message showing the current date in both 
    - Select "Send Messages" and "Embed Links" under bot permissions
 7. Copy the generated URL and use it to invite the bot to your server
 
-### 2. Get Your Channel ID
-
-1. In Discord, go to User Settings > Advanced > Enable "Developer Mode"
-2. Right-click the channel where you want daily messages
-3. Click "Copy Channel ID"
-
-### 3. Configure the Bot
+### 2. Configure the Bot
 
 1. Copy the example environment file:
    ```bash
@@ -49,13 +52,12 @@ A Discord bot that sends a daily embed message showing the current date in both 
 2. Edit `.env` with your values:
    ```env
    DISCORD_BOT_TOKEN=your_bot_token_here
-   DISCORD_CHANNEL_ID=your_channel_id_here
    WEBSITE_URL=https://your-solar-calendar-site.com
    CRON_SCHEDULE=0 8 * * *
    TIMEZONE=America/New_York
    ```
 
-### 4. Install & Run
+### 3. Install & Run
 
 ```bash
 # Install dependencies
@@ -69,15 +71,24 @@ npm run build
 npm start
 ```
 
+### 4. Configure Each Server
+
+Once the bot is running and invited to your server:
+
+1. Use `/setchannel` to set the channel for daily messages (requires "Manage Server" permission)
+2. Users can add their birthdays with `/addbirthday month:X day:Y`
+3. Use `/settings` to view current configuration
+
 ## Configuration Options
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `DISCORD_BOT_TOKEN` | Your Discord bot token | (required) |
-| `DISCORD_CHANNEL_ID` | Channel ID for daily messages | (required) |
 | `WEBSITE_URL` | URL to link in embeds | `https://solar-calendar.com` |
 | `CRON_SCHEDULE` | Cron expression for scheduling | `0 8 * * *` (8:00 AM) |
 | `TIMEZONE` | Timezone for the cron schedule | `America/New_York` |
+
+**Note:** Channel configuration is now done per-server using the `/setchannel` command. Settings are stored in a persistent SQLite database at `./data/settings.db` (configurable via `DATABASE_PATH` env var).
 
 ### Cron Schedule Examples
 
@@ -141,3 +152,5 @@ The bot sends a beautiful embed that looks like this:
 ## License
 
 MIT
+
+

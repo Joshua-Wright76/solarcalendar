@@ -13,3 +13,5 @@ COPY dist ./dist
 
 # Run the bot
 CMD ["node", "dist/index.js"]
+
+

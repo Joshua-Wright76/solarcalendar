@@ -1,13 +1,46 @@
 {
   "_comment": "Solar Calendar Birthdays - month is 1-12 (1=July, 2=August, 3=September, 4=October, 5=November, 6=December, 7=January, 8=February, 9=March, 10=April, 11=May, 12=June), day is 1-30",
   "birthdays": [
-    { "name": "misuvva", "month": 8, "day": 27 },
-    { "name": "bumble.bee", "month": 11, "day": 20 },
-    { "name": "mopuness", "month": 7, "day": 25 },
-    { "name": "beepbeep", "month": 6, "day": 12 },
-    { "name": "beetlecampu", "month": 8, "day": 6 },
-    { "name": "jooth", "month": 7, "day": 3 },
-    { "name": "xx_discofairy69_xx", "month": 10, "day": 13 },
-    { "name": "kiiraa", "month": 12, "day": 18 }
+    {
+      "name": "misuvva",
+      "month": 8,
+      "day": 27
+    },
+    {
+      "name": "bumble.bee",
+      "month": 11,
+      "day": 20
+    },
+    {
+      "name": "mopuness",
+      "month": 7,
+      "day": 25
+    },
+    {
+      "name": "beepbeep",
+      "month": 6,
+      "day": 12
+    },
+    {
+      "name": "beetlecampu",
+      "month": 8,
+      "day": 6
+    },
+    {
+      "name": "jooth",
+      "month": 7,
+      "day": 3
+    },
+    {
+      "name": "xx_discofairy69_xx",
+      "month": 10,
+      "day": 13
+    },
+    {
+      "name": "kiiraa",
+      "month": 12,
+      "day": 18
+    }
   ]
 }
+
