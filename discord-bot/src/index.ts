@@ -374,11 +374,11 @@ function buildBirthdayString(solarDate: SolarDate): string | null {
     parts.push(`🎈 ${upcomingStr}`)
   }
   
-  // Monthly birthdays: 🧁 name↺ (with offset)
+  // Monthly birthdays: 🧁 name (with offset)
   if (monthlyBirthdays.length > 0) {
     const monthlyStr = monthlyBirthdays
       .sort((a, b) => a.offset - b.offset)
-      .map(m => `${m.names.join(', ')}↺${formatOffsetSymbol(m.offset)}`)
+      .map(m => `${m.names.join(', ')}${formatOffsetSymbol(m.offset)}`)
       .join(' ')
     parts.push(`🧁 ${monthlyStr}`)
   }
@@ -402,6 +402,101 @@ function getSeasonEmoji(solarDate: SolarDate): string {
   if (solarDate.month <= 6) return '🍂'
   if (solarDate.month <= 9) return '❄️'
   return '🌸'
+}
+
+/**
+ * Get season progress info: days into season, total days, and days to nearest marker
+ * Seasons: Summer (months 1-3), Fall (4-6), Winter (7-9), Spring (10-12)
+ * Markers: Summer Solstice (solstice days), Fall Equinox (month 4), Winter Solstice (month 7), Spring Equinox (month 10)
+ */
+function getSeasonProgress(solarDate: SolarDate): {
+  daysIntoSeason: number
+  seasonLength: number
+  nearestMarker: string
+  daysToMarker: number
+  isPast: boolean
+} {
+  const SEASON_LENGTH = 90 // 3 months × 30 days
+  
+  if (solarDate.isSolsticeDay) {
+    return {
+      daysIntoSeason: 0,
+      seasonLength: SEASON_LENGTH,
+      nearestMarker: 'Summer Solstice',
+      daysToMarker: 0,
+      isPast: false
+    }
+  }
+  
+  const month = solarDate.month
+  const day = solarDate.day
+  
+  // Calculate days into current season
+  let daysIntoSeason: number
+  let currentSeason: string
+  
+  if (month <= 3) {
+    // Summer: months 1-3
+    daysIntoSeason = (month - 1) * 30 + day
+    currentSeason = 'Summer'
+  } else if (month <= 6) {
+    // Fall: months 4-6
+    daysIntoSeason = (month - 4) * 30 + day
+    currentSeason = 'Fall'
+  } else if (month <= 9) {
+    // Winter: months 7-9
+    daysIntoSeason = (month - 7) * 30 + day
+    currentSeason = 'Winter'
+  } else {
+    // Spring: months 10-12
+    daysIntoSeason = (month - 10) * 30 + day
+    currentSeason = 'Spring'
+  }
+  
+  // Calculate days to nearest solstice/equinox
+  // Summer Solstice: end of month 12 / start of year (solstice days)
+  // Fall Equinox: month 4, day 1
+  // Winter Solstice: month 7, day 1
+  // Spring Equinox: month 10, day 1
+  
+  const dayOfYear = (month - 1) * 30 + day
+  const markers = [
+    { name: 'Fall Equinox', dayOfYear: 90 },      // Month 4, day 1 = day 91, but equinox is transition
+    { name: 'Winter Solstice', dayOfYear: 180 },  // Month 7, day 1
+    { name: 'Spring Equinox', dayOfYear: 270 },   // Month 10, day 1
+    { name: 'Summer Solstice', dayOfYear: 360 },  // End of year (solstice days)
+  ]
+  
+  let nearestMarker = ''
+  let daysToMarker = Infinity
+  let isPast = false
+  
+  for (const marker of markers) {
+    const daysUntil = marker.dayOfYear - dayOfYear
+    const daysSince = dayOfYear - marker.dayOfYear
+    
+    if (Math.abs(daysUntil) < Math.abs(daysToMarker)) {
+      daysToMarker = daysUntil
+      nearestMarker = marker.name
+      isPast = daysUntil < 0
+    }
+  }
+  
+  // Also check summer solstice from previous year perspective
+  const daysToSummerSolsticeNextYear = 360 - dayOfYear
+  if (daysToSummerSolsticeNextYear < Math.abs(daysToMarker)) {
+    daysToMarker = daysToSummerSolsticeNextYear
+    nearestMarker = 'Summer Solstice'
+    isPast = false
+  }
+  
+  return {
+    daysIntoSeason,
+    seasonLength: SEASON_LENGTH,
+    nearestMarker,
+    daysToMarker: Math.abs(daysToMarker),
+    isPast
+  }
 }
 
 /**
@@ -444,13 +539,20 @@ function createCalendarEmbed(): EmbedBuilder {
   // Combined date line
   const combinedDate = `🌞 ${solarDateStr}  ⟷  📅 ${gregDateStr}`
 
+  // Get season progress info
+  const seasonProgress = getSeasonProgress(solarDate)
+  const seasonProgressBar = buildProgressBar(seasonProgress.daysIntoSeason, seasonProgress.seasonLength, 10)
+  const markerText = seasonProgress.isPast 
+    ? `${seasonProgress.daysToMarker}d since ${seasonProgress.nearestMarker}`
+    : `${seasonProgress.daysToMarker}d to ${seasonProgress.nearestMarker}`
+
   const embed = new EmbedBuilder()
     .setColor(seasonColor)
     .setTitle(`${seasonEmoji} ${moonEmoji} Today`)
     .setURL(WEBSITE_URL)
     .addFields({
       name: combinedDate,
-      value: `**${seasonName}**`,
+      value: `**${seasonName}**\n${seasonProgressBar}\n${markerText}`,
       inline: false
     })
 
