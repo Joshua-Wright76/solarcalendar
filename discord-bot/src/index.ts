@@ -387,7 +387,7 @@ function createCalendarEmbed(description?: string): EmbedBuilder {
   // Add 7-day view
   embed.addFields({
     name: '📆 7-Day View',
-    value: '```\n' + build7DayView(now) + '\n```',
+    value: build7DayView(now),
     inline: false
   })
 
@@ -395,12 +395,12 @@ function createCalendarEmbed(description?: string): EmbedBuilder {
   embed.addFields(
     {
       name: '🌞 Solar Week',
-      value: '`' + buildSolarWeekView(now) + '`',
+      value: buildSolarWeekView(now),
       inline: false
     },
     {
       name: '📅 Gregorian Week',
-      value: '`' + buildGregorianWeekView(now) + '`',
+      value: buildGregorianWeekView(now),
       inline: false
     }
   )
@@ -526,3 +526,4 @@ client.on('error', (error) => {
 // Login to Discord
 console.log('🚀 Starting Solar Calendar Discord Bot...')
 client.login(BOT_TOKEN)
+
